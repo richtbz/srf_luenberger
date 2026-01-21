@@ -27,7 +27,7 @@ import numpy as np
 
 
 def c2iq(c):
-    return np.array([[c.real], [c.imag]])
+    return np.array([c.real, c.imag])
 
 
 def rls(dt, Vf, Vcav, f12, ffilt, fdet0, amin, noise=None, pT0=1, init=False):
@@ -69,14 +69,14 @@ def rls(dt, Vf, Vcav, f12, ffilt, fdet0, amin, noise=None, pT0=1, init=False):
     """
 
     # time horizon by desired filter cutoff frequency
-    Nforget = int(1/(2*np.pi*ffilt*dt))
+    Nforget = 1/(2*np.pi*ffilt*dt)
     # forgetting factor
     alpha = 1-1/Nforget
     # initial value of pT
     pT = pT0
 
     # initial parameter estimate
-    qT = np.zeros((2, 1))
+    qT = np.zeros((2,))
 
     # input matrix, specifically for SRF cavities and input voltages
     B = 2 * f12*2*np.pi * dt * np.eye(2)
@@ -88,8 +88,8 @@ def rls(dt, Vf, Vcav, f12, ffilt, fdet0, amin, noise=None, pT0=1, init=False):
         noise=np.zeros((Vf.shape[0], 2))
 
     if init:
-        qT[0, 0] = f12*2*np.pi*dt
-        qT[1, 0] = fdet0*2*np.pi*dt
+        qT[0] = f12*2*np.pi*dt
+        qT[1] = fdet0*2*np.pi*dt
         hbw[:2] += f12
         det[:2] += fdet0
 
@@ -102,15 +102,15 @@ def rls(dt, Vf, Vcav, f12, ffilt, fdet0, amin, noise=None, pT0=1, init=False):
             VT2 = c2iq(Vcav[T+2] + noise[T+2, 1])
 
             # eq. 11
-            yT2 = VT2 - VT1 - B*uT1
+            yT2 = VT2 - VT1 - B@uT1
             # eq. 15
-            V2T = (VT.T@VT)[0, 0]
+            V2T = VT@VT
             # eq. 20 (bracket)
             tmp = 1/(alpha+pT*V2T)
             # eq. 21
             qT1 = tmp*(alpha*qT + pT *
-                        np.array([[-VT1[0, 0]*yT2[0, 0] - VT1[1, 0]*yT2[1, 0]],
-                                  [-VT1[1, 0]*yT2[0, 0] + VT1[0, 0]*yT2[1, 0]]])
+                        np.array([-VT1[0]*yT2[0] - VT1[1]*yT2[1],
+                                  -VT1[1]*yT2[0] + VT1[0]*yT2[1]])
                         )
             # advancing variables for next iteration
             qT = qT1
@@ -119,8 +119,17 @@ def rls(dt, Vf, Vcav, f12, ffilt, fdet0, amin, noise=None, pT0=1, init=False):
 
         # save estimates to memory
         # available at T+2 since using measurements from T+2
-        hbw[T+2] = qT[0, 0]/(2*np.pi*dt)
-        det[T+2] = qT[1, 0]/(2*np.pi*dt)
+        hbw[T+2] = qT[0]/(2*np.pi*dt)
+        det[T+2] = qT[1]/(2*np.pi*dt)
         pt[T+2] = pT
 
     return hbw, det, pt
+
+def lpf(x, fc, dt):
+    tau = 1.0 / (2*np.pi*fc)
+    alpha = dt / (tau + dt)
+    y = np.zeros_like(x)
+    y[0] = x[0]
+    for n in range(1, len(x)):
+        y[n] = (1 - alpha) * y[n-1] + alpha * x[n]
+    return y
