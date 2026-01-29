@@ -1,15 +1,25 @@
-from scipy.signal import butter, sosfilt, lfilter
+from scipy.signal import sosfilt, lfilter, bilinear, zpk2sos, butter, tf2zpk
 import numpy as np
+
+def sosfilter(N, Wn, fs, zeta=1):
+    if N == 2:
+        wn = 2*np.pi*Wn
+        b = [wn**2]
+        a = [1, 2*wn*zeta, wn**2]
+        return zpk2sos(*tf2zpk(*bilinear(b, a, fs=fs)))
+    else:
+        return butter(N, Wn, fs=fs, output='sos')
+
 
 def inverseModel(fwd_c, prb_c, fs, f12, f0=1.3e9, samplesIgnored=0,
                  smoothingWindow=400, filtering=False, filtF=36_100,
-                 minGradient=1, decimation=1):
+                 minGradient=1, decimation=1, zeta=1, filtOrd=2):
     w12 = f12*2*np.pi
 
     pulseLength = prb_c.shape[0]
 
     if filtering:
-        sos = butter(2, filtF, fs=fs, output='sos')
+        sos = sosfilter(filtOrd, filtF, fs=fs, zeta=zeta)
         prb = sosfilt(sos, prb_c)
         fwd = sosfilt(sos, fwd_c)
     else:

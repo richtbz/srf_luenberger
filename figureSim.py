@@ -7,7 +7,7 @@ import wget
 from os.path import exists
 
 import simulator
-from rls import rls
+from rls import rls, lpf
 
 plotRLS = False
 
@@ -58,7 +58,7 @@ axs[1].plot(time_trace3, np.angle(prbC, deg=True))
 axs[1].set_ylabel("phase (deg)")
 axs[2].plot(time_trace3, det)
 axs[2].set_ylabel("detuning (Hz)")
-[ax.grid() for ax in axs]
+[ax.grid(zorder=-1, alpha=0.3) for ax in axs]
 axs[0].set_title("simulated cavity signals")
 fig.align_ylabels(axs)
 axs[-1].set_xlabel("time (s)")
@@ -175,7 +175,7 @@ simlabel = "ground truth"
 axs[1].plot(time_trace3*1e6, det, 'k--', label=simlabel, zorder=10)
 axs[0].plot(time_trace3*1e6, hbw/half_bandwidth*100, 'k--', zorder=5, label=simlabel)
 axs[2].set_xlabel("time ($\\mu s$)")
-[ax.grid(zorder=-1) for ax in axs]
+[ax.grid(zorder=-1, alpha=0.3) for ax in axs]
 axs[1].set_ylabel("$\Delta\hat\omega$ (Hz)")
 axs[0].set_ylabel("$\hat{\omega}_{1/2}/\omega_{1/2}$ (\%)")
 axs[2].set_ylabel("$\Delta\omega - \Delta\hat\omega$ (Hz)")
@@ -206,10 +206,10 @@ xrot = plotSim(axs, r"3. $\kappa = 1$, $\mathbf{u}$ rotated", prbC, (beam/2+fwdC
 
 if plotRLS:
 # RLS ideal
-    # hbwrls, detrls, _ = rls(1/fs, (fwdC+0*beam/2)*np.exp(-25j/180*np.pi), prbC,
+    # hbwrls, detrls, _ = rls(1/fs, (fwdC+beam/2)*np.exp(-10j/180*np.pi), prbC,
     hbwrls, detrls, _ = rls(1/fs, fwdC+beam/2, prbC,
                          half_bandwidth*1, rfBandwidth, 0,
-                         amin=Amin, noise=np.zeros((time_trace3.size, 2)),
+                         amin=0, noise=np.zeros((time_trace3.size, 2)),
                          pT0=1e-6, init=True)
     axs[0].plot(time_trace3*1e6, hbwrls*100/half_bandwidth, label=r"RLS, $\kappa = $1")
     axs[1].plot(time_trace3*1e6, detrls)
@@ -261,12 +261,14 @@ plt.savefig("figureSim.pdf", bbox_inches='tight')
 
 # %%
 
+Amin = 0.
+
 fig, axs = plt.subplots(nrows=2, sharex=True, figsize=(4, 3))
 plt.subplots_adjust(hspace=0.15)
 axs[1].plot(time_trace3*1e6, det, 'k--', label=simlabel, zorder=10)
 axs[0].plot(time_trace3*1e6, hbw/half_bandwidth*100, 'k--', zorder=5, label=simlabel)
 axs[1].set_xlabel("time ($\\mu s$)")
-[ax.grid(zorder=-1) for ax in axs]
+[ax.grid(zorder=-1, alpha=0.3) for ax in axs]
 axs[1].set_ylabel("$\Delta\hat\omega$ (Hz)")
 axs[0].set_ylabel("$\hat{\omega}_{1/2}/\omega_{1/2}$ (\%)")
 
@@ -288,7 +290,10 @@ axs[1].plot(time_trace3*1e6, -x[:, 3], label="LO", marker=".", markevery=1000,
 
 hbwrls, detrls, _ = rls(1/fs, fwdC+beam/2, prbC,
                      half_bandwidth*1, rfBandwidth, 0,
-                     amin=1, pT0=1e-6, init=True)
+                     amin=Amin, pT0=1e-6, init=True)
+
+# hbwrls = lpf(hbwrls, rfBandwidth, 1/fs)
+# detrls = lpf(detrls, rfBandwidth, 1/fs)
 
 axs[0].plot(time_trace3*1e6, hbwrls*100/half_bandwidth, label="RLS")
 axs[1].plot(time_trace3*1e6, detrls, label="RLS")

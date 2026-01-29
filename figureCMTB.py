@@ -6,9 +6,10 @@ import wget
 from os.path import exists
 
 from inverseModel import inverseModel
-from rls import rls
+from rls import rls, lpf
 
 plotRLS = False
+filterRLS = True
 
 filename = "CW_CMTB.npz"
 if not exists(filename):
@@ -74,6 +75,10 @@ hbwrls, detrls, _ = rls(1/fs, fwdC, prbC2,
                      f12=bandwidth2, ffilt=pole, fdet0=0,
                      amin=1, noise=np.zeros((time_trace2.size, 2)), pT0=100)
 
+if filterRLS:
+    hbwrls = lpf(hbwrls, pole, 1/fs)
+    detrls = lpf(detrls, pole, 1/fs)
+
 def stretchplot(ax, time, tfactor, tsplit, data, **kwargs):
     s2 = np.s_[np.argwhere(time >= tsplit)[0][0]:]
 
@@ -108,13 +113,15 @@ plt.fill_between(
     [0, 100],
     100+6*np.ones((2,))*np.std(loest[:isplit]),
     100-6*np.ones((2,))*np.std(loest[:isplit]),
-    color=colors[0], alpha=0.15
+    color=colors[0], alpha=0.15,
+    edgecolor='none'
 )
 plt.fill_between(
     [0, 100],
     100+6*np.ones((2,))*np.std(rfprb[:isplit]),
     100-6*np.ones((2,))*np.std(rfprb[:isplit]),
-    color=colors[2], alpha=0.3
+    color=colors[2], alpha=0.3,
+    edgecolor='none'
 )
 
 
@@ -143,7 +150,7 @@ plt.xticks(ticks+[tsplit-tickspacing/20])
 plt.xlim(1, 5 + 1e3*(1-toffs))
 plt.xlabel("time (ms)")
 
-axs.grid()
+axs.grid(zorder=-1, alpha=0.3)
 plt.legend(framealpha=1)
 
 plt.savefig("figureCMTB.pdf", bbox_inches='tight')
@@ -159,17 +166,18 @@ stretchplot(axs, time, tfactor, tsplit,
             label="LO $\Delta\hat\omega_{1/2}/\Delta\hat\omega_{1/2}^{\mathrm{ext}}$ (\%)",
             where="post", color=colors[0])
 stretchplot(axs, (time_trace2-toffs)*1e3, tfactor, tsplit,
-            hbwrls/bandwidth2*100, where="post", color=colors[0],
+            hbwrls/bandwidth2*100, where="post", color=colors[1],
             label=r"RLS $\Delta\hat\omega_{1/2}/\Delta\hat\omega_{1/2}^{\mathrm{ext}}$ (\%)",
-            linestyle='--')
+            zorder=-1)
 stretchplot(axs, (time_trace2-toffs)*1e3, tfactor, tsplit,
-            -x2[:, 3], where="post", color=colors[1],
+            -x2[:, 3], where="post", color=colors[0],
             label=r"LO $\Delta\hat\omega$ (Hz)")
 stretchplot(axs, (time_trace2-toffs)*1e3, tfactor, tsplit,
             detrls, where="post", color=colors[1],
             label=r"RLS $\Delta\hat\omega$ (Hz)",
             linestyle='--')
 plt.ylim(-7, 122)
+plt.ylim(98, 116)
 
 tickspacing = 10
 ticks = [t for t in np.arange(0, tsplit, tickspacing)]+\
@@ -183,7 +191,7 @@ plt.xticks(ticks+[tsplit-tickspacing/20])
 plt.xlim(1, 10 + 1e3*(1-toffs))
 plt.xlabel("time (ms)")
 
-axs.grid()
+axs.grid(zorder=-1, alpha=0.3)
 # plt.legend(framealpha=1)
 fig.legend(ncols=2,
            bbox_to_anchor=(0.48, 1.03), loc="center")

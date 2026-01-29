@@ -125,6 +125,7 @@ def luenberger_observer(
   # Display tuning factor limits. Eq. (C11)
   kappa = 10
   if show_factor_limits:
+      print(f"butterworth phi approx {0.33*rho+1.11:.2f}")
       print(1 - (
         (np.exp(-2*np.pi*kappa*half_bandwidth_ext*T)-rho)/
         (1 - rho)
