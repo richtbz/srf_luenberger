@@ -278,6 +278,9 @@ else:
     lab = 'quench'
     i=1
 
+
+hbw_plt = plotme[:, 4]
+det_plt = plotme[:, 5]
 for j in [0, 2]:
     axs[j].step(time_trace, plotme[:, 2],
                 label="LO "+lab, where="post",
@@ -288,9 +291,6 @@ for j in [0, 2]:
                 label=f"RLS {lab}",
                 zorder=-1,  alpha=0.75)
 
-
-hbw_plt = plotme[:, 4]
-det_plt = plotme[:, 5]
 for j in [1, 3]:
     axs[j].step(time_trace, plotme[:, 3],
             label="LO "+lab, where="post",
@@ -341,16 +341,16 @@ axs[3].set_xlim(rect2[:2])
 axs[3].set_ylim(rect2[2:])
 axs[1].plot([rect2[0],rect2[1],rect2[1],rect2[0],rect2[0]],
             [rect2[2],rect2[2],rect2[3],rect2[3],rect2[2]],
-            'k', linewidth=1, zorder=-1)
-axs[1].plot([rect2[1], xlim[0]+(axrect2[0]+axrect2[2])*np.diff(xlim)[0]],
-            [rect2[3], ylim2[0]+(axrect2[1]+axrect2[3])*np.diff(ylim2)[0]],
-            'k', linewidth=1, zorder=0)
+            'k', linewidth=1, zorder=10)
 axs[1].plot([rect2[0], xlim[0]+(axrect2[0])*np.diff(xlim)[0]],
             [rect2[3], ylim2[0]+(axrect2[1]+axrect2[3])*np.diff(ylim2)[0]],
-            'k', linewidth=1, zorder=0)
+            'k', linewidth=1, zorder=10)
+axs[1].plot([rect2[0], xlim[0]+(axrect2[0])*np.diff(xlim)[0]],
+            [rect2[2], ylim2[0]+(axrect2[1])*np.diff(ylim2)[0]],
+            'k', linewidth=1, zorder=10)
 axs[1].plot([rect2[1], xlim[0]+(axrect2[0]+axrect2[2])*np.diff(xlim)[0]],
             [rect2[2], ylim2[0]+(axrect2[1])*np.diff(ylim2)[0]],
-            'k', linewidth=1, zorder=0)
+            'k', linewidth=1, zorder=10)
 
 axs[2].set_xticks([750, 775])
 axs[2].set_yticks([140])
